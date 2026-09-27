@@ -1,5 +1,5 @@
 {
-  "name": "preflight",
+  "name": "preflight-tf-aws",
   "displayName": "Preflight — Terraform Plan Viewer for AWS",
   "description": "Visualizes Terraform plans and states of AWS infrastructure (`terraform show -json`, `terraform.tfstate`): summary, filters, per-resource diff and a relationship / permission graph.",
   "version": "0.1.0",

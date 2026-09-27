@@ -6,7 +6,7 @@ suite('Extension', () => {
 	const plan = vscode.Uri.file(path.join(__dirname, 'fixtures', 'mixed-plan.json'));
 
 	test('command and editor are registered', async () => {
-		const ext = vscode.extensions.all.find((e) => e.packageJSON.name === 'preflight');
+		const ext = vscode.extensions.getExtension('theosylvestre.preflight-tf-aws');
 		assert.ok(ext, 'extension not found');
 		await vscode.commands.executeCommand('preflight.openPlan', plan);
 		assert.ok(ext.isActive, 'extension not activated');

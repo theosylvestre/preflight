@@ -115,7 +115,7 @@ The eye on a node, or on a frame header for all of its resources at once, hides 
 ```sh
 pnpm install
 pnpm test      # lint, unit tests and VS Code integration tests
-make package   # builds preflight-<version>.vsix
+make package   # builds preflight-tf-aws-<version>.vsix
 ```
 
 - `F5` ("Run Extension" config): starts a VS Code window with the extension loaded.
