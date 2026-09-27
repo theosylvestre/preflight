@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "preflight: dev window (inspector 9229)",
+			"type": "shell",
+			"command": "make debug",
+			"presentation": { "reveal": "silent" },
+			"problemMatcher": []
+		}
+	]
+}

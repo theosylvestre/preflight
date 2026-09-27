@@ -1,0 +1,35 @@
+// A launch configuration that launches the extension inside a new window
+// Use IntelliSense to learn about possible attributes.
+// Hover to view descriptions of existing attributes.
+// For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			// Starts the dev window with `make debug`, then attaches over IPv4: "Run Extension"
+			// fails here because the debugger tries to connect to ::1 (ECONNREFUSED).
+			"name": "Run Extension (attach 127.0.0.1)",
+			"type": "node",
+			"request": "attach",
+			"address": "127.0.0.1",
+			"port": 9229,
+			"timeout": 30000,
+			"preLaunchTask": "preflight: dev window (inspector 9229)",
+			"skipFiles": ["<node_internals>/**"]
+		},
+		{
+			"name": "Run Extension",
+			"type": "extensionHost",
+			"request": "launch",
+			"args": [
+				"--disable-extensions",
+				"--extensionDevelopmentPath=${workspaceFolder}",
+				"${workspaceFolder}/tf-test"
+			],
+			"outFiles": [
+				"${workspaceFolder}/extension.js",
+				"${workspaceFolder}/src/**/*.js"
+			]
+		}
+	]
+}

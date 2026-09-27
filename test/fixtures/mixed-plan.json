@@ -1,0 +1,98 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.9.5",
+  "timestamp": "2026-09-26T12:02:00Z",
+  "resource_changes": [
+    {
+      "address": "aws_instance.web",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "web",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "ami": "ami-0c55b159cbfafe1f0",
+          "instance_type": "t3.micro",
+          "monitoring": false,
+          "tags": { "Environment": "staging", "Name": "web-01", "Temp": "true" },
+          "root_block_device": [{ "encrypted": true, "volume_size": 20 }]
+        },
+        "after": {
+          "ami": "ami-0c55b159cbfafe1f0",
+          "instance_type": "t3.small",
+          "monitoring": true,
+          "tags": { "Environment": "production", "Name": "web-01", "Owner": "platform-team" },
+          "root_block_device": [{ "encrypted": true, "volume_size": 40 }]
+        },
+        "after_unknown": { "tags": {}, "root_block_device": [{}] },
+        "before_sensitive": {},
+        "after_sensitive": {}
+      }
+    },
+    {
+      "address": "aws_db_instance.main",
+      "mode": "managed",
+      "type": "aws_db_instance",
+      "name": "main",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "action_reason": "replace_because_cannot_update",
+      "change": {
+        "actions": ["delete", "create"],
+        "before": { "id": "db-7XKQ2M4N5P6R8S", "password": "hunter2", "storage_encrypted": false },
+        "after": { "password": "hunter2", "storage_encrypted": true },
+        "after_unknown": { "id": true },
+        "before_sensitive": { "password": true },
+        "after_sensitive": { "password": true },
+        "replace_paths": [["storage_encrypted"]]
+      }
+    },
+    {
+      "address": "module.net.aws_security_group.legacy",
+      "module_address": "module.net",
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "legacy",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "action_reason": "delete_because_no_resource_config",
+      "change": {
+        "actions": ["delete"],
+        "before": { "id": "sg-1", "cidr_blocks": ["0.0.0.0/0"] },
+        "after": null,
+        "after_unknown": {},
+        "before_sensitive": {},
+        "after_sensitive": false
+      }
+    },
+    {
+      "address": "aws_route53_record.api",
+      "mode": "managed",
+      "type": "aws_route53_record",
+      "name": "api",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["update"],
+        "before": { "records": ["lb-old", "keep"], "ttl": 300 },
+        "after": { "records": ["keep", "lb-new"], "ttl": 60 },
+        "after_unknown": {},
+        "before_sensitive": {},
+        "after_sensitive": {}
+      }
+    },
+    {
+      "address": "aws_iam_role.lambda_exec",
+      "mode": "managed",
+      "type": "aws_iam_role",
+      "name": "lambda_exec",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["no-op"],
+        "before": { "name": "lambda-exec", "path": "/" },
+        "after": { "name": "lambda-exec", "path": "/" },
+        "after_unknown": {},
+        "before_sensitive": {},
+        "after_sensitive": {}
+      }
+    }
+  ]
+}
