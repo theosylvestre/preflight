@@ -56,6 +56,7 @@ a JDK 17+ to run Gradle (on macOS, the one bundled with IntelliJ IDEA is used wh
 pnpm install
 make dist      # (or just `make`) builds both packages into build/: the .vsix and the JetBrains plugin .zip
 make clean     # removes build/
+make version V=0.2.0  # version of both packages, Unreleased changelog section released under it
 ```
 
 ### VS Code extension

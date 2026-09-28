@@ -1,7 +1,7 @@
 ICONS_DIR := core/media/aws-icons
 VSC := $(CURDIR)/vsc
 
-.PHONY: dist clean clean-icons build run debug icon package install test \
+.PHONY: dist version clean clean-icons build run debug icon package install test \
 	jb-build jb-test jb-run jb-run-pycharm jb-verify install-jetbrains
 
 # Packages of both IDEs land in build/.
@@ -12,6 +12,11 @@ JB_ZIP := preflight-jetbrains-$(shell sed -n 's/^pluginVersion *= *//p' jetbrain
 # Builds both packages into build/: the .vsix (VS Code) and the plugin .zip (JetBrains IDEs).
 dist: package jb-build
 	@ls -l $(OUT)/$(VSIX) $(OUT)/$(JB_ZIP)
+
+# Sets the version of both packages and releases the Unreleased section of CHANGELOG.md under it:
+#   make version V=0.2.0
+version:
+	node scripts/version.mjs $(V)
 
 # Removes the packages.
 clean:

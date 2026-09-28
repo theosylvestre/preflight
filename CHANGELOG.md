@@ -26,7 +26,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - Repository split into `core/` (parsers, graph, viewer page), `vsc/` (VS Code extension) and
   `jetbrains/` (IntelliJ Platform plugin, Gradle), with a pnpm workspace.
-- `make dist` builds both packages into `build/`; `make install` / `make install-jetbrains` install them.
+- `make dist` builds both packages into `build/`; `make install` / `make install-jetbrains` install them;
+  `make version V=x.y.z` sets the version of both and releases this changelog section.
 - Test environments: core unit tests (mocha), VS Code integration tests, JetBrains unit and platform
   tests, sandbox IntelliJ IDEA / PyCharm (`make jb-run`, `make jb-run-pycharm`), Plugin Verifier.
 
