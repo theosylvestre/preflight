@@ -1,0 +1,3 @@
+<!-- Loaded when the JCEF plugin is present (2026.2+): nothing to register, the dependency itself
+     makes the JCEF classes visible to the plugin. -->
+<idea-plugin/>

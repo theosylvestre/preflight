@@ -24,6 +24,9 @@
 
     <!-- Every IDE of the IntelliJ Platform: IntelliJ IDEA, PyCharm, WebStorm, GoLand… -->
     <depends>com.intellij.modules.platform</depends>
+    <!-- JCEF (com.intellij.ui.jcef) is part of the platform in 2025.x, a separate bundled plugin
+         in recent versions (2026.2): optional, so that the plugin loads in both and sees its classes. -->
+    <depends optional="true" config-file="preflight-jcef.xml">com.intellij.modules.jcef</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <fileEditorProvider implementation="io.github.theosylvestre.preflight.PreflightEditorProvider"/>
