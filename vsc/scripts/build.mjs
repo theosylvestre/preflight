@@ -1,6 +1,6 @@
 // Builds the extension from this folder and ../core: vsce only packages files of the
-// extension folder, so the shared code is bundled into dist/ and the shared page copied
-// into media/ (both generated, ignored by git).
+// extension folder, so the shared code is bundled into dist/, and the shared page, license and
+// changelog copied here (all generated, ignored by git).
 //
 //   node scripts/build.mjs [--production] [--watch]
 
@@ -18,6 +18,7 @@ function copyShared() {
 	rmSync(join(here, 'media'), { recursive: true, force: true });
 	cpSync(join(core, 'media'), join(here, 'media'), { recursive: true });
 	cpSync(join(here, '..', 'LICENSE'), join(here, 'LICENSE'));
+	cpSync(join(here, '..', 'CHANGELOG.md'), join(here, 'CHANGELOG.md'));
 }
 
 /** @type {esbuild.BuildOptions} */

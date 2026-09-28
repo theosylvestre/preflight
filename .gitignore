@@ -10,6 +10,7 @@ core/dist/
 vsc/dist/
 vsc/media/
 vsc/LICENSE
+vsc/CHANGELOG.md
 jetbrains/build/
 jetbrains/.gradle/
 jetbrains/.intellijPlatform/

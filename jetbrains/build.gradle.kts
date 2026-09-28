@@ -1,3 +1,4 @@
+import org.jetbrains.changelog.Changelog
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
@@ -5,6 +6,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 plugins {
     id("org.jetbrains.kotlin.jvm") version "2.4.20"
     id("org.jetbrains.intellij.platform") version "2.19.0"
+    id("org.jetbrains.changelog") version "2.5.0"
 }
 
 group = providers.gradleProperty("pluginGroup").get()
@@ -41,9 +43,20 @@ dependencies {
     testImplementation("org.opentest4j:opentest4j:1.3.0")
 }
 
+// The changelog shared with the VS Code extension: the section of this version (or the
+// unreleased one) becomes the change notes of the plugin.
+changelog {
+    path = layout.projectDirectory.file("../CHANGELOG.md").asFile.absolutePath
+    repositoryUrl = "https://github.com/theosylvestre/preflight"
+}
+
 intellijPlatform {
     pluginConfiguration {
         version = providers.gradleProperty("pluginVersion")
+        val notes = changelog // captured alone (not the project), for the configuration cache
+        changeNotes = providers.gradleProperty("pluginVersion").map { v ->
+            notes.renderItem((notes.getOrNull(v) ?: notes.getUnreleased()).withHeader(false).withEmptySections(false), Changelog.OutputType.HTML)
+        }
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
             untilBuild = provider { null }
