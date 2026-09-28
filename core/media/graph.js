@@ -461,6 +461,23 @@
 			for (let i = 0; i < E.length; i++) for (let j = i + 1; j < E.length; j++) if (crosses(i, j)) r.push([i, j]);
 			return r;
 		};
+		// Crossing pairs with a link at u or v: the only ones a swap of u and v can change, so
+		// the total after the swap is the total before, minus these before, plus these after.
+		const incident = Array.from({ length: N }, () => []);
+		E.forEach(([a, b], i) => { incident[a].push(i); if (b !== a) incident[b].push(i); });
+		const mark = new Int32Array(E.length);
+		let markGen = 0;
+		const crossingsAround = (u, v) => {
+			markGen++;
+			const S = [];
+			for (const i of incident[u].concat(incident[v])) if (mark[i] !== markGen) { mark[i] = markGen; S.push(i); }
+			let n = 0;
+			for (const i of S) for (let j = 0; j < E.length; j++) {
+				if (j === i || (mark[j] === markGen && j < i)) continue;
+				if (crosses(i, j)) n++;
+			}
+			return n;
+		};
 
 		// 4. Simulation, then swaps of the ends of crossing links (skipped on large graphs,
 		// where counting crossings for every swap gets too slow).
@@ -477,8 +494,9 @@
 				for (const [i, j] of pairs) {
 					const q = [E[i][0], E[i][1], E[j][0], E[j][1]];
 					for (let s = 0; s < 4; s++) for (let t = s + 1; t < 4; t++) {
+						const around = crossingsAround(q[s], q[t]);
 						swap(q[s], q[t]);
-						const c = crossingPairs().length;
+						const c = base - around + crossingsAround(q[s], q[t]);
 						if (c < base) base = c; else swap(q[s], q[t]);
 					}
 				}
@@ -633,13 +651,19 @@
 	const DIRS = [[1, 0], [0, 1], [-1, 0], [0, -1]];
 	const KIND_ORDER = ['perm', 'attach', 'runs-as', 'member', 'boundary', 'trust'];
 
+	// Binary heap of (key, value) pairs on typed arrays, growing as needed; ties are broken
+	// exactly as by a plain binary heap, so the routes don't depend on the storage.
 	class MinHeap {
-		constructor() { this.k = []; this.v = []; }
-		get size() { return this.k.length; }
+		constructor() { this.k = new Float64Array(1024); this.v = new Int32Array(1024); this.size = 0; }
+		clear() { this.size = 0; }
 		push(key, val) {
+			if (this.size === this.k.length) {
+				const k = new Float64Array(this.size * 2), v = new Int32Array(this.size * 2);
+				k.set(this.k); v.set(this.v);
+				this.k = k; this.v = v;
+			}
 			const k = this.k, v = this.v;
-			let i = k.length;
-			k.push(key); v.push(val);
+			let i = this.size++;
 			while (i > 0) {
 				const p = (i - 1) >> 1;
 				if (k[p] <= key) break;
@@ -648,13 +672,13 @@
 			k[i] = key; v[i] = val;
 		}
 		pop() {
-			const k = this.k, v = this.v, top = v[0], lk = k.pop(), lv = v.pop();
-			if (k.length) {
+			const k = this.k, v = this.v, top = v[0], n = --this.size, lk = k[n], lv = v[n];
+			if (n) {
 				let i = 0;
 				for (;;) {
 					let c = 2 * i + 1;
-					if (c >= k.length) break;
-					if (c + 1 < k.length && k[c + 1] < k[c]) c++;
+					if (c >= n) break;
+					if (c + 1 < n && k[c + 1] < k[c]) c++;
 					if (k[c] >= lk) break;
 					k[i] = k[c]; v[i] = v[c]; i = c;
 				}
@@ -725,25 +749,30 @@
 			return frame[cell(p.x + (p.w || W) / 2, p.y + (p.h || H) / 2)];
 		};
 
-		const dist = new Float32Array(N * 4), prev = new Int32Array(N * 4);
+		// Search state per (cell, direction), valid for the current search only (`gen`), so it
+		// is never cleared; column / row of each cell precomputed for the heuristic.
+		const dist = new Float32Array(N * 4), prev = new Int32Array(N * 4), stamp = new Int32Array(N * 4);
+		const goalStamp = new Int32Array(N), colOf = new Int32Array(N), rowOf = new Int32Array(N);
+		for (let c = 0; c < N; c++) { colOf[c] = c % cols; rowOf[c] = Math.floor(c / cols); }
+		const heap = new MinHeap();
+		let gen = 0;
 		// A* from any start port to any goal port; returns the cells and the port of each end.
 		const search = (e, starts, goals) => {
 			const si = index.get(e.from), ti = index.get(e.to);
-			const goal = new Map(goals.map((p) => [p.c, p]));
+			gen++;
+			for (const p of goals) goalStamp[p.c] = gen;
 			const fs = frameOf(si), ft = frameOf(ti);
 			const tp = L.xy.get(e.to), tx = (tp.x + (tp.w || W) / 2) / GRID, ty = (tp.y + (tp.h || H) / 2) / GRID;
-			const h = (c) => Math.abs((c % cols) - tx) + Math.abs(Math.floor(c / cols) - ty);
-			dist.fill(Infinity);
-			const heap = new MinHeap();
+			heap.clear();
 			for (const p of starts) {
 				const s = p.c * 4 + p.dir, d = p.offset * 0.5 + used[p.c] * USED_COST;
-				if (d < dist[s]) { dist[s] = d; prev[s] = -1; heap.push(d + h(p.c), s); }
+				if (stamp[s] !== gen || d < dist[s]) { stamp[s] = gen; dist[s] = d; prev[s] = -1; heap.push(d + Math.abs(colOf[p.c] - tx) + Math.abs(rowOf[p.c] - ty), s); }
 			}
 			let found = -1, budget = N * 6;
 			while (heap.size && budget-- > 0) {
 				const s = heap.pop(), c = s >> 2, dir = s & 3, d = dist[s];
-				if (goal.has(c)) { found = s; break; }
-				const cx = c % cols, cy = Math.floor(c / cols);
+				if (goalStamp[c] === gen) { found = s; break; }
+				const cx = colOf[c], cy = rowOf[c];
 				for (let nd = 0; nd < 4; nd++) {
 					if (nd === ((dir + 2) & 3)) continue;
 					const nx = cx + DIRS[nd][0], ny = cy + DIRS[nd][1];
@@ -753,7 +782,7 @@
 					const f = frame[n];
 					const step = 1 + (nd !== dir ? TURN_COST : 0) + used[n] * USED_COST + (f !== -1 && f !== fs && f !== ft ? FOREIGN_FRAME_COST : 0);
 					const ns = n * 4 + nd, ndist = d + step;
-					if (ndist < dist[ns]) { dist[ns] = ndist; prev[ns] = s; heap.push(ndist + h(n), ns); }
+					if (stamp[ns] !== gen || ndist < dist[ns]) { stamp[ns] = gen; dist[ns] = ndist; prev[ns] = s; heap.push(ndist + Math.abs(nx - tx) + Math.abs(ny - ty), ns); }
 				}
 			}
 			if (found < 0) return null;
@@ -761,7 +790,11 @@
 			for (let s = found; s !== -1; s = prev[s]) cells.push(s >> 2);
 			cells.reverse();
 			for (const c of cells) used[c] += 1;
-			return { cells, start: starts.find((p) => p.c === cells[0]), end: goal.get(cells[cells.length - 1]) };
+			// Last goal port on that cell, as a Map built from the goals would keep.
+			const last = cells[cells.length - 1];
+			let end = null;
+			for (const p of goals) if (p.c === last) end = p;
+			return { cells, start: starts.find((p) => p.c === cells[0]), end };
 		};
 
 		const edges = [...g.edges].sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind))
