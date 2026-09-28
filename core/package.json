@@ -5,6 +5,8 @@
   "description": "Terraform plan / state parsing, IAM graph and viewer page shared by the Preflight extensions.",
   "license": "MIT",
   "scripts": {
+    "build": "node scripts/build.mjs --production",
+    "pretest": "pnpm run build",
     "test": "mocha --ui tdd \"test/**/*.test.js\""
   },
   "devDependencies": {
