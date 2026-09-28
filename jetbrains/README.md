@@ -61,7 +61,7 @@ Open **this folder** (`jetbrains/`) in IntelliJ IDEA as a Gradle project: the ru
 | Run PyCharm with Plugin | `runPyCharm` | `make jb-run-pycharm` | Same in PyCharm 2025.1 |
 | Run Tests | `check` | `make jb-test` | All the tests below |
 | Verify Plugin | `verifyPlugin` | `make jb-verify` | IntelliJ Plugin Verifier against the recommended IDEs |
-| — | `buildPlugin` | `make jb-build` | `build/distributions/preflight-jetbrains-<version>.zip` |
+| — | `buildPlugin` | `make jb-build` | `build/distributions/preflight-jetbrains-<version>.zip`, copied by `make` to `../build/` |
 
 To try the plugin in an IDE installed on the machine rather than a downloaded one, set
 `localIde=/Applications/IntelliJ IDEA.app` in `~/.gradle/gradle.properties` (or pass

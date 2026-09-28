@@ -1,14 +1,21 @@
 ICONS_DIR := core/media/aws-icons
 VSC := $(CURDIR)/vsc
 
-.PHONY: dist clean-icons build run debug icon package install test \
+.PHONY: dist clean clean-icons build run debug icon package install test \
 	jb-build jb-test jb-run jb-run-pycharm jb-verify
 
+# Packages of both IDEs land in build/.
+OUT := build
 VSIX := $(shell node -p "p=require('./vsc/package.json');p.name+'-'+p.version").vsix
+JB_ZIP := preflight-jetbrains-$(shell sed -n 's/^pluginVersion *= *//p' jetbrains/gradle.properties).zip
 
-# Builds both packages: the .vsix at the root (VS Code) and
-# jetbrains/build/distributions/preflight-jetbrains-<version>.zip (JetBrains IDEs).
+# Builds both packages into build/: the .vsix (VS Code) and the plugin .zip (JetBrains IDEs).
 dist: package jb-build
+	@ls -l $(OUT)/$(VSIX) $(OUT)/$(JB_ZIP)
+
+# Removes the packages.
+clean:
+	rm -rf $(OUT)
 
 # Keeps only the 64 px SVG icons of the AWS pack (removes PNG, .DS_Store, other sizes…)
 # then the empty folders.
@@ -34,14 +41,15 @@ DEBUG_PORT := 9229
 debug: build
 	code --new-window --disable-extensions --inspect-extensions=$(DEBUG_PORT) --extensionDevelopmentPath="$(VSC)" "$(CURDIR)/tf-test" "$(CURDIR)/tf-test/plan.json"
 
-# Builds the .vsix at the project root (no runtime dependencies: --no-dependencies avoids
+# Builds build/<name>-<version>.vsix (no runtime dependencies: --no-dependencies avoids
 # vsce walking the pnpm node_modules).
 package:
-	cd vsc && pnpm exec vsce package --no-dependencies -o ../$(VSIX)
+	mkdir -p $(OUT)
+	cd vsc && pnpm exec vsce package --no-dependencies -o ../$(OUT)/$(VSIX)
 
 # Builds the .vsix then installs it in the local VS Code.
 install: package
-	code --install-extension $(VSIX) --force
+	code --install-extension $(OUT)/$(VSIX) --force
 
 # Regenerates the extension icon (PNG required by vsce) from core/media/icon.svg.
 icon:
@@ -53,10 +61,12 @@ icon:
 IDEA_JBR := /Applications/IntelliJ IDEA.app/Contents/jbr/Contents/Home
 GRADLE := cd jetbrains && JAVA_HOME="$${JAVA_HOME:-$(IDEA_JBR)}" ./gradlew
 
-# Builds jetbrains/build/distributions/preflight-jetbrains-<version>.zip
-# (Settings → Plugins → ⚙ → Install Plugin from Disk…).
+# Builds build/preflight-jetbrains-<version>.zip (Gradle writes it to
+# jetbrains/build/distributions/; install with Settings → Plugins → ⚙ → Install Plugin from Disk…).
 jb-build:
 	$(GRADLE) buildPlugin
+	mkdir -p $(OUT)
+	cp jetbrains/build/distributions/$(JB_ZIP) $(OUT)/
 
 # Unit and platform tests (headless IDE), and the page side of the bridge (Node.js).
 jb-test:

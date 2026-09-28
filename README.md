@@ -54,7 +54,8 @@ a JDK 17+ to run Gradle (on macOS, the one bundled with IntelliJ IDEA is used wh
 
 ```sh
 pnpm install
-make dist      # (or just `make`) builds both: the .vsix at the root and the JetBrains plugin .zip
+make dist      # (or just `make`) builds both packages into build/: the .vsix and the JetBrains plugin .zip
+make clean     # removes build/
 ```
 
 ### VS Code extension
@@ -62,7 +63,7 @@ make dist      # (or just `make`) builds both: the .vsix at the root and the Jet
 ```sh
 pnpm install
 pnpm test      # lint, core unit tests and VS Code integration tests
-make package   # builds preflight-tf-aws-<version>.vsix at the root
+make package   # builds build/preflight-tf-aws-<version>.vsix
 make install   # same, then installs it in VS Code
 ```
 
@@ -79,7 +80,7 @@ pnpm install          # esbuild, for the core bundle
 make jb-test          # unit, platform (headless IDE) and bridge tests
 make jb-run           # sandbox IntelliJ IDEA 2025.1 with the plugin, on tf-test/plan.json
 make jb-run-pycharm   # same in PyCharm
-make jb-build         # jetbrains/build/distributions/preflight-jetbrains-<version>.zip
+make jb-build         # build/preflight-jetbrains-<version>.zip
 ```
 
 Or open `jetbrains/` in IntelliJ IDEA: run configurations are provided in `jetbrains/.run/`. Details in
