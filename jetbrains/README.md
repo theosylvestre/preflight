@@ -83,8 +83,8 @@ To try the plugin in an IDE installed on the machine rather than a downloaded on
   layout cache requests.
 - The parsers, graph and view model are tested in [`../core/test`](../core/test) (`pnpm test` at the root).
 
-### Publishing
+### Distribution
 
-`./gradlew signPlugin publishPlugin` with a JetBrains Marketplace token and a signing certificate,
-passed as environment variables: `PUBLISH_TOKEN`, `CERTIFICATE_CHAIN`, `PRIVATE_KEY`,
-`PRIVATE_KEY_PASSWORD` (see the `signing` and `publishing` blocks of `build.gradle.kts`).
+The plugin is distributed as the `.zip` built by `make dist` (`../build/preflight-jetbrains-<version>.zip`),
+installed with *Settings → Plugins → ⚙ → Install Plugin from Disk…* or `make install-jetbrains`. Nothing
+is published automatically.
