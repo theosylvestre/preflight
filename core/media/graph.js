@@ -3,7 +3,7 @@
 // permissions, rendered as SVG with pan / zoom and a details panel.
 (function () {
 	const {
-		W, H, PAD, trunc, focusLayout, routeAll, chipText, chipWidth, edgeKey, compute, unpack
+		W, H, PAD, trunc, focusLayout, routeAll, chipText, chipWidth, edgeKey, compute, unpack, layoutKey
 	} = window.PreflightLayout;
 
 
@@ -466,6 +466,8 @@
 	// running graphLayout.js, from the moment a plan is loaded: first the variant shown, then
 	// the others in the background, and kept, so that switching variants is instant. Without
 	// workers (blocked by the runtime), the variant shown is computed on the page when needed.
+	// The IDE keeps computed layouts between sessions (`cache`, keyed by layoutKey): those of a
+	// graph already seen are asked for first, and only the missing ones computed.
 
 	const VARIANTS = {
 		'type:vertical': { modules: false, horizontal: false },
@@ -485,8 +487,16 @@
 		queue: [], // variants still to compute, next first
 		busy: null, // variant being computed by the worker
 		worker: undefined, // Worker, null when unavailable
-		onReady: null // called with the variant when one gets ready
+		onReady: null, // called with the variant when one gets ready
+		cache: null, // { load(keys) → Promise<{ key: packed }>, save(key, packed) } from the host
+		keys: {}, // variant → cache key, for the loaded plan
+		loading: false // cached layouts asked for, computations wait for the answer
 	};
+	const CACHE_TIMEOUT = 1500;
+
+	function configure(options) {
+		store.cache = options.cache || null;
+	}
 
 	function graphOf(variant) {
 		return VARIANTS[variant].modules ? store.graphs.module : store.graphs.type;
@@ -526,7 +536,44 @@
 		// The variant the settings show first, then the same grouping, then the rest.
 		const first = variantOf(cfg);
 		store.queue = Object.keys(VARIANTS).sort((a, b) => rankOf(a, first) - rankOf(b, first));
+		store.keys = {};
+		for (const v of Object.keys(VARIANTS)) store.keys[v] = layoutKey(graphOf(v), VARIANTS[v]);
+		if (store.cache) loadCached(store.gen);
 		next();
+	}
+
+	// Layouts of this graph kept by the IDE; the computations start when it has answered
+	// (or not in time).
+	function loadCached(gen) {
+		store.loading = true;
+		const timeout = new Promise((resolve) => setTimeout(() => resolve({}), CACHE_TIMEOUT));
+		Promise.race([Promise.resolve().then(() => store.cache.load(Object.values(store.keys))), timeout])
+			.catch(() => ({}))
+			.then((entries) => {
+				if (gen !== store.gen) return;
+				store.loading = false;
+				const found = [];
+				for (const [v, key] of Object.entries(store.keys)) {
+					const data = entries && entries[key];
+					if (!isPacked(data) || store.data.has(v)) continue;
+					store.data.set(v, data);
+					store.queue = store.queue.filter((x) => x !== v);
+					found.push(v);
+				}
+				next();
+				if (store.onReady) found.forEach(store.onReady);
+			});
+	}
+	function isPacked(d) {
+		return !!d && typeof d === 'object' && Array.isArray(d.xy) && Array.isArray(d.clusters) && Array.isArray(d.routes);
+	}
+	function saveCached(variant, data) {
+		if (!store.cache) return;
+		try {
+			store.cache.save(store.keys[variant], data);
+		} catch {
+			/* the IDE keeps nothing */
+		}
 	}
 	function rankOf(v, first) {
 		if (v === first) return 0;
@@ -541,7 +588,7 @@
 	}
 
 	function next() {
-		if (!store.worker || store.busy || !store.queue.length) return;
+		if (!store.worker || store.busy || store.loading || !store.queue.length) return;
 		const variant = store.queue.shift();
 		store.busy = variant;
 		store.worker.postMessage({ id: store.gen + '#' + variant, graph: graphOf(variant), variant: VARIANTS[variant] });
@@ -551,8 +598,10 @@
 		const [gen, variant] = msg.id.split('#');
 		if (Number(gen) !== store.gen) return next();
 		store.busy = null;
-		if (msg.data) store.data.set(variant, msg.data);
-		else store.queue.push(variant);
+		if (msg.data) {
+			store.data.set(variant, msg.data);
+			saveCached(variant, msg.data);
+		} else store.queue.push(variant);
 		next();
 		if (msg.data && store.onReady) store.onReady(variant);
 	}
@@ -562,10 +611,19 @@
 		if (store.ready.has(variant)) return store.ready.get(variant);
 		if (!store.data.has(variant)) {
 			if (store.worker) return want(variant), null;
-			store.data.set(variant, compute(graphOf(variant), VARIANTS[variant]));
+			const data = compute(graphOf(variant), VARIANTS[variant]);
+			store.data.set(variant, data);
 			store.queue = store.queue.filter((v) => v !== variant);
+			saveCached(variant, data);
 		}
-		const entry = unpack(store.data.get(variant), graphOf(variant));
+		let entry;
+		try {
+			entry = unpack(store.data.get(variant), graphOf(variant));
+		} catch {
+			// Unusable cached layout: computed again.
+			store.data.delete(variant);
+			return store.worker ? (want(variant), null) : layoutOf(variant);
+		}
 		store.ready.set(variant, entry);
 		return entry;
 	}
@@ -867,5 +925,5 @@
 		});
 	}
 
-	window.PreflightGraph = { render, prepare, fit: () => { view.fit = true; fit(view); } };
+	window.PreflightGraph = { render, prepare, configure, fit: () => { view.fit = true; fit(view); } };
 })();

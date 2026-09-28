@@ -36,7 +36,14 @@ function page(sources) {
 	vm.runInContext(readFileSync(coreJs, 'utf8'), context, { filename: coreJs });
 	window.PreflightCore = context.PreflightCore;
 	vm.runInContext(readFileSync(hostJs, 'utf8'), context, { filename: hostJs });
-	const bridge = { calls: [], ready() { this.calls.push(['ready']); }, settings(s) { this.calls.push(['settings', s]); }, openExternal(u) { this.calls.push(['open', u]); } };
+	const bridge = {
+		calls: [], stored: '{}',
+		ready() { this.calls.push(['ready']); },
+		settings(s) { this.calls.push(['settings', s]); },
+		openExternal(u) { this.calls.push(['open', u]); },
+		loadLayouts(keys, reply) { this.calls.push(['load', keys]); reply(this.stored); },
+		saveLayout(payload) { this.calls.push(['save', payload]); }
+	};
 	return { host: window.PreflightHost, posted, fetched, style, bridge };
 }
 
@@ -107,4 +114,20 @@ test('settings from another view are forwarded to the viewer', () => {
 	host._settings('{"direction":"vertical"}');
 	assert.equal(posted[0].type, 'settings');
 	assert.equal(posted[0].settings.direction, 'vertical');
+});
+
+test('graph layouts: loads are answered with the stored entries, saves send key and JSON', () => {
+	const { host, posted, bridge } = page([]);
+	host._connect(bridge);
+	bridge.stored = '{"vertical-v1-x-1":{"xy":[]}}';
+	host.postMessage({ type: 'layouts:load', id: 7, keys: ['vertical-v1-x-1', 'force-v1-y-1'] });
+	assert.deepEqual(bridge.calls.at(-1), ['load', 'vertical-v1-x-1,force-v1-y-1']);
+	assert.equal(posted[0].type, 'layouts');
+	assert.equal(posted[0].id, 7);
+	assert.deepEqual(JSON.parse(JSON.stringify(posted[0].entries)), { 'vertical-v1-x-1': { xy: [] } });
+	bridge.stored = 'not json';
+	host.postMessage({ type: 'layouts:load', id: 8, keys: [] });
+	assert.deepEqual({ ...posted[1].entries }, {}, 'unreadable answer: no entries');
+	host.postMessage({ type: 'layouts:save', key: 'force-v1-y-1', data: { xy: [['a', { x: 1 }]] } });
+	assert.deepEqual(bridge.calls.at(-1), ['save', 'force-v1-y-1\n{"xy":[["a",{"x":1}]]}']);
 });

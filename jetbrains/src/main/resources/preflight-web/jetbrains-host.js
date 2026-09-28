@@ -15,9 +15,12 @@
 		if (msg.type === 'ready') bridge.ready();
 		else if (msg.type === 'settings') bridge.settings(JSON.stringify(msg.settings || {}));
 		else if (msg.type === 'openExternal') bridge.openExternal(String(msg.url));
+		// Graph layouts kept by the plugin between sessions: request / reply.
+		else if (msg.type === 'layouts:load') bridge.loadLayouts((msg.keys || []).join(','), (json) => post({ type: 'layouts', id: msg.id, entries: parseObject(json) }));
+		else if (msg.type === 'layouts:save') bridge.saveLayout(msg.key + '\n' + JSON.stringify(msg.data));
 	}
 
-	function parseSettings(json) {
+	function parseObject(json) {
 		try {
 			const v = JSON.parse(json);
 			return v && typeof v === 'object' && !Array.isArray(v) ? v : {};
@@ -34,7 +37,10 @@
 		getState: () => state,
 		setState: (s) => { state = s; },
 
-		/** Called by the plugin once the page is loaded: { ready(), settings(json), openExternal(url) }. */
+		/**
+		 * Called by the plugin once the page is loaded: { ready(), settings(json), openExternal(url),
+		 * loadLayouts(keys, reply(json)), saveLayout(key + '\n' + json) }.
+		 */
 		_connect(b) {
 			bridge = b;
 			queue.splice(0).forEach(send);
@@ -47,7 +53,7 @@
 		 */
 		_load(meta) {
 			const id = ++loads;
-			const settings = parseSettings(meta.settings);
+			const settings = parseObject(meta.settings);
 			if (meta.fontFamily) document.documentElement.style.setProperty('--vscode-editor-font-family', meta.fontFamily);
 			fetch(ORIGIN + '/__source?n=' + id)
 				.then((r) => {
@@ -69,7 +75,7 @@
 
 		/** Settings changed in another Preflight view. */
 		_settings(json) {
-			post({ type: 'settings', settings: parseSettings(json) });
+			post({ type: 'settings', settings: parseObject(json) });
 		}
 	};
 })();

@@ -5,6 +5,7 @@ const { execFile } = require('child_process');
 const fs = require('fs');
 const { indexIcons, indexCategoryIcons } = require('../../core/src/awsIcons');
 const { buildViewModel } = require('../../core/src/viewModel');
+const { LayoutCache } = require('./layoutCache');
 
 const VIEW_TYPE = 'preflight.planViewer';
 const SETTINGS_KEY = 'preflight.settings';
@@ -22,6 +23,7 @@ class PlanEditorProvider {
 		this.panels = new Set();
 		this.icons = indexIcons(vscode.Uri.joinPath(context.extensionUri, 'media').fsPath);
 		this.categoryIcons = indexCategoryIcons(vscode.Uri.joinPath(context.extensionUri, 'media').fsPath);
+		this.layouts = new LayoutCache(vscode.Uri.joinPath(context.globalStorageUri, 'layouts').fsPath);
 	}
 
 	/**
@@ -55,6 +57,8 @@ class PlanEditorProvider {
 				if (msg.type === 'ready') send();
 				else if (msg.type === 'settings') this.saveSettings(msg.settings, panel);
 				else if (msg.type === 'openExternal' && /^https:\/\//.test(msg.url)) vscode.env.openExternal(vscode.Uri.parse(msg.url));
+				else if (msg.type === 'layouts:load') this.layouts.load(msg.keys).then((entries) => panel.webview.postMessage({ type: 'layouts', id: msg.id, entries }));
+				else if (msg.type === 'layouts:save') this.layouts.save(msg.key, msg.data);
 			}),
 			vscode.workspace.onDidChangeTextDocument((e) => {
 				if (e.document.uri.toString() === document.uri.toString()) send();

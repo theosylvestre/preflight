@@ -41,17 +41,22 @@ class PreflightView(private val project: Project, private val file: VirtualFile)
     private val ready = JBCefJSQuery.create(browser as JBCefBrowserBase)
     private val saveSettings = JBCefJSQuery.create(browser as JBCefBrowserBase)
     private val openExternal = JBCefJSQuery.create(browser as JBCefBrowserBase)
+    private val loadLayouts = JBCefJSQuery.create(browser as JBCefBrowserBase)
+    private val saveLayout = JBCefJSQuery.create(browser as JBCefBrowserBase)
     private val reload = Alarm(Alarm.ThreadToUse.POOLED_THREAD, this)
 
     val component: JComponent get() = browser.component
 
     init {
         Disposer.register(this, browser)
-        listOf(ready, saveSettings, openExternal).forEach { Disposer.register(this, it) }
+        listOf(ready, saveSettings, openExternal, loadLayouts, saveLayout).forEach { Disposer.register(this, it) }
 
         ready.addHandler { push(); null }
         saveSettings.addHandler { json -> PreflightSettings.getInstance().save(json, this); null }
         openExternal.addHandler { url -> if (url.startsWith("https://")) BrowserUtil.browse(url); null }
+        // Graph layouts kept between sessions (see graph.js).
+        loadLayouts.addHandler { keys -> JBCefJSQuery.Response(LayoutCache.shared.load(keys)) }
+        saveLayout.addHandler { payload -> LayoutCache.shared.save(payload); null }
 
         browser.jbCefClient.addRequestHandler(RequestHandler(), browser.cefBrowser)
         browser.jbCefClient.addLoadHandler(object : CefLoadHandlerAdapter() {
@@ -101,7 +106,9 @@ class PreflightView(private val project: Project, private val file: VirtualFile)
         window.PreflightHost._connect({
             ready: function () { ${ready.inject("''")} },
             settings: function (json) { ${saveSettings.inject("json")} },
-            openExternal: function (url) { ${openExternal.inject("url")} }
+            openExternal: function (url) { ${openExternal.inject("url")} },
+            loadLayouts: function (keys, reply) { ${loadLayouts.inject("keys", "reply", "function () { reply('{}'); }")} },
+            saveLayout: function (payload) { ${saveLayout.inject("payload")} }
         });
     """.trimIndent()
 

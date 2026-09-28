@@ -74,4 +74,21 @@ suite('graphLayout', () => {
 		assert.deepStrictEqual(plain(posted[0].data), plain(L.compute(graph, { horizontal: false })));
 		assert.ok(posted[1].error, 'errors are reported, not thrown');
 	});
+
+	test('cache keys: stable, file-name safe, changed by what the variant reads only', () => {
+		const vertical = { horizontal: false }, force = { force: true };
+		const key = L.layoutKey(graph, vertical);
+		assert.match(key, /^vertical-v\d+-[a-z0-9]+-[a-z0-9]+$/);
+		assert.strictEqual(L.layoutKey(graph, vertical), key);
+		assert.match(L.layoutKey(graph, { horizontal: true }), /^horizontal-/);
+		const renamed = Object.assign({}, graph, { nodes: graph.nodes.map((n, i) => (i ? n : Object.assign({}, n, { label: n.label + '2' }))) });
+		assert.notStrictEqual(L.layoutKey(renamed, vertical), key, 'a label changes the frames layout');
+		assert.notStrictEqual(L.layoutKey(renamed, force), L.layoutKey(graph, force), 'and the force layout');
+		const regrouped = Object.assign({}, graph, { nodes: graph.nodes.map((n) => Object.assign({}, n, { category: 'Module:x', categoryLabel: 'Module x' })) });
+		assert.notStrictEqual(L.layoutKey(regrouped, vertical), key, 'frames depend on the groups');
+		assert.strictEqual(L.layoutKey(regrouped, force), L.layoutKey(graph, force), 'the force layout does not');
+		const moreActions = Object.assign({}, graph, { edges: graph.edges.map((e) => Object.assign({}, e, { actions: (e.actions || []).concat('s3:Extra') })) });
+		assert.strictEqual(L.layoutKey(moreActions, vertical), key, 'routing ignores the action labels');
+		assert.notStrictEqual(L.layoutKey(moreActions, force), L.layoutKey(graph, force), 'the force layout makes room for them');
+	});
 });

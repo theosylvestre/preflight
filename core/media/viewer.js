@@ -331,6 +331,21 @@
 		renderPlan();
 	}
 
+	// Graph layouts kept by the IDE between sessions (see graph.js): asked for by request /
+	// reply over the host messages.
+	let lastRequest = 0;
+	const replies = new Map();
+	if (window.PreflightGraph) window.PreflightGraph.configure({
+		cache: {
+			load: (keys) => new Promise((resolve) => {
+				const id = ++lastRequest;
+				replies.set(id, resolve);
+				host.postMessage({ type: 'layouts:load', id, keys });
+			}),
+			save: (key, data) => host.postMessage({ type: 'layouts:save', key, data })
+		}
+	});
+
 	// The graph grouped by type, and by module (resources of a module take their module's
 	// group instead of their type's), built once per plan.
 	function graphsOf(m) {
@@ -595,6 +610,10 @@
 			render();
 			// Graph layouts are computed in the background from now on, the Graph tab open or not.
 			if (window.PreflightGraph && !model.graph.error) window.PreflightGraph.prepare(graphsOf(model), cfg);
+		} else if (msg.type === 'layouts') {
+			const resolve = replies.get(msg.id);
+			replies.delete(msg.id);
+			if (resolve) resolve(msg.entries || {});
 		} else if (msg.type === 'error') {
 			model = null;
 			meta = { path: msg.path || [], error: msg.message };
