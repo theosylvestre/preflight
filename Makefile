@@ -1,7 +1,8 @@
 ICONS_DIR := core/media/aws-icons
 VSC := $(CURDIR)/vsc
 
-.PHONY: clean-icons build run debug icon package install test
+.PHONY: clean-icons build run debug icon package install test \
+	jb-build jb-test jb-run jb-run-pycharm jb-verify
 
 VSIX := $(shell node -p "p=require('./vsc/package.json');p.name+'-'+p.version").vsix
 
@@ -41,3 +42,29 @@ install: package
 # Regenerates the extension icon (PNG required by vsce) from core/media/icon.svg.
 icon:
 	rsvg-convert -w 256 -h 256 core/media/icon.svg -o core/media/icon.png
+
+# --- JetBrains plugin (jetbrains/) ------------------------------------------------------------
+# Gradle needs a JDK 17+: JAVA_HOME when set, otherwise the runtime bundled with IntelliJ IDEA
+# (macOS). The JDK 21 used to compile is downloaded by Gradle when missing.
+IDEA_JBR := /Applications/IntelliJ IDEA.app/Contents/jbr/Contents/Home
+GRADLE := cd jetbrains && JAVA_HOME="$${JAVA_HOME:-$(IDEA_JBR)}" ./gradlew
+
+# Builds jetbrains/build/distributions/preflight-jetbrains-<version>.zip
+# (Settings → Plugins → ⚙ → Install Plugin from Disk…).
+jb-build:
+	$(GRADLE) buildPlugin
+
+# Unit and platform tests (headless IDE), and the page side of the bridge (Node.js).
+jb-test:
+	$(GRADLE) check
+
+# Sandbox IntelliJ IDEA / PyCharm with the plugin, opened on tf-test/.
+jb-run:
+	$(GRADLE) runIde
+
+jb-run-pycharm:
+	$(GRADLE) runPyCharm
+
+# IntelliJ Plugin Verifier against the recommended IDE versions (large downloads).
+jb-verify:
+	$(GRADLE) verifyPlugin
