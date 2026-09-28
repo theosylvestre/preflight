@@ -30,10 +30,16 @@ host layer differs — the VS Code webview API on one side, JCEF and a small bri
   - [`src/awsServices.js`](core/src/awsServices.js) + [`media/aws-icons/`](core/media/aws-icons/): AWS service
     icon per resource (official AWS Architecture Icons pack; `make clean-icons` keeps only the 64 px `.svg` files).
   - [`media/`](core/media/): the viewer page (`viewer.html`, `viewer.js` for the plan, `graph.js` for the graph, CSS).
+    [`graphLayout.js`](core/media/graphLayout.js) computes the graph layouts and link routes, without DOM: the
+    page runs it in a Web Worker as soon as a plan is loaded, for every variant (frames by type / by module ×
+    vertical / horizontal, force), so switching between them is instant. The IDE keeps computed layouts
+    between sessions (keyed by a hash of what they are computed from), so a plan already seen shows its
+    graph at once.
   - [`test/`](core/test/): parser, graph, state and view model unit tests (mocha, no IDE needed).
 - [`vsc/`](vsc/): the VS Code extension.
   - [`extension.js`](vsc/extension.js): activation, commands.
   - [`src/planEditor.js`](vsc/src/planEditor.js): read-only custom editor (webview).
+  - [`src/layoutCache.js`](vsc/src/layoutCache.js): graph layouts kept in the extension's global storage.
   - [`scripts/build.mjs`](vsc/scripts/build.mjs): bundles `core` into `vsc/dist/` and copies `core/media`
     into `vsc/media/` (vsce only packages the extension folder).
   - [`test/`](vsc/test/): VS Code integration tests.

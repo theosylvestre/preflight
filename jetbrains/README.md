@@ -21,9 +21,14 @@ come from [`../core`](../core) — hosted in the IDE's embedded browser (JCEF).
 PreflightFileEditor ── JCEF browser ── https://preflight.local/index.html  (served from the plugin jar)
        │                                  core/media/viewer.html + preflight-core.js + jetbrains-host.js
        │  executeJavaScript: PreflightHost._load({ path, modulesJson, settings })
-       │◀─ JBCefJSQuery:     ready / settings / openExternal
+       │◀─ JBCefJSQuery:     ready / settings / openExternal / loadLayouts (answered) / saveLayout
        └─ resource handler:  /__source → text of the file (the page builds the model with PreflightCore)
 ```
+
+The graph layouts are computed in the page by a Web Worker (`core/media/graphLayout.js`, allowed by
+`worker-src blob:`), and kept between sessions by
+[`LayoutCache`](src/main/kotlin/io/github/theosylvestre/preflight/LayoutCache.kt): one JSON file per layout
+in `<IDE system dir>/preflight/layouts`, the least recently used removed beyond 200.
 
 - [`PreflightEditorProvider`](src/main/kotlin/io/github/theosylvestre/preflight/PreflightEditorProvider.kt):
   which files get the tab (`PLACE_AFTER_DEFAULT_EDITOR`), and `open()` for the actions.
@@ -66,13 +71,15 @@ To try the plugin in an IDE installed on the machine rather than a downloaded on
 ### Tests
 
 - `src/test/kotlin`, JUnit (`./gradlew test`):
-  - plain unit tests: file recognition, JSON escaping, packaged page and its CSP, URL → resource mapping;
+  - plain unit tests: file recognition, JSON escaping, packaged page and its CSP, URL → resource mapping,
+    layout cache (keys checked, corrupted files skipped, least recently used removed);
   - platform tests (`BasePlatformTestCase`, headless IDE): editor provider registration and file
     acceptance, opening a file in the Preflight tab, action visibility in context menus.
     JCEF is disabled in tests (`ide.browser.jcef.enabled=false`): the editor shows its fallback message
     there, and the page is tested apart.
 - `src/test/js`, Node.js test runner (`./gradlew testWebHost`): `jetbrains-host.js` with the real core
-  bundle — message queue until the plugin connects, file loading, errors, concurrent reloads, settings.
+  bundle — message queue until the plugin connects, file loading, errors, concurrent reloads, settings,
+  layout cache requests.
 - The parsers, graph and view model are tested in [`../core/test`](../core/test) (`pnpm test` at the root).
 
 ### Publishing

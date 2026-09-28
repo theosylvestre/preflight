@@ -4,6 +4,15 @@ All notable changes to this extension are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- **Graph** tab: layouts are computed in the background (Web Worker) as soon as a plan is opened, for
+  every layout option, so switching between them is instant and the view never freezes; layout and link
+  routing also take about a third less time, with the same result.
+- Computed layouts are kept between sessions: reopening a plan already seen shows its graph at once.
+
 ## [0.1.0] - 2026-09-27
 
 First public release.
