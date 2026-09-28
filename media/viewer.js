@@ -1,8 +1,10 @@
 // @ts-nocheck
-// Preflight webview. Receives the model built by src/planParser.js
+// Preflight webview. Receives the model built by src/viewModel.js
 // via postMessage and renders it.
 (function () {
-	const vscode = acquireVsCodeApi();
+	// Messages to the IDE and per-view state: the VS Code webview API, or the bridge the
+	// JetBrains plugin installs before this script (same postMessage / getState / setState).
+	const host = window.PreflightHost || acquireVsCodeApi();
 
 	const PLAN_ACT = {
 		create:  { sym: '+', label: 'create',          verb: 'will be created',          fg: '#56d364', bg: 'rgba(46,160,67,0.16)',  bd: 'rgba(46,160,67,0.45)' },
@@ -58,7 +60,7 @@
 
 	let model = null;
 	let meta = { path: [], error: null };
-	let st = Object.assign({ tab: 'plan', sel: null, filter: 'all', q: '', view: 'split', hide: false, nums: true, folds: {}, gsel: null, ghide: {}, gnodes: {}, gfocus: null, gfsel: null }, vscode.getState() || {});
+	let st = Object.assign({ tab: 'plan', sel: null, filter: 'all', q: '', view: 'split', hide: false, nums: true, folds: {}, gsel: null, ghide: {}, gnodes: {}, gfocus: null, gfsel: null }, host.getState() || {});
 
 	function applyCfg() {
 		const b = document.body.classList;
@@ -70,7 +72,7 @@
 	function setCfg(patch) {
 		cfg = Object.assign({}, cfg, patch);
 		applyCfg();
-		vscode.postMessage({ type: 'settings', settings: cfg });
+		host.postMessage({ type: 'settings', settings: cfg });
 		render();
 	}
 
@@ -85,7 +87,7 @@
 	// `quiet`: saves the state without re-rendering (the caller updates the page itself).
 	function setState(patch, quiet) {
 		st = Object.assign({}, st, patch);
-		vscode.setState(st);
+		host.setState(st);
 		if (!quiet) render();
 	}
 
@@ -342,7 +344,7 @@
 			label: cfg.label, direction: cfg.direction, modules: cfg.modules, tubes: cfg.tubes, chips: cfg.chips, setCfg, zoom: ZOOM[cfg.size] || 1,
 			inPlan: (id) => model.resources.some((r) => r.addr === id),
 			openInPlan: (id) => setState({ tab: 'plan', sel: id, filter: 'all', q: '' }),
-			openUrl: (url) => vscode.postMessage({ type: 'openExternal', url })
+			openUrl: (url) => host.postMessage({ type: 'openExternal', url })
 		});
 	}
 
@@ -588,5 +590,5 @@
 	});
 
 	render();
-	vscode.postMessage({ type: 'ready' });
+	host.postMessage({ type: 'ready' });
 })();
