@@ -1,3 +1,5 @@
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
+import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
@@ -9,6 +11,9 @@ group = providers.gradleProperty("pluginGroup").get()
 version = providers.gradleProperty("pluginVersion").get()
 
 val core = layout.projectDirectory.dir("../core")
+// Sandbox IDEs open the sample Terraform project on its plan (tf-test/plan.json, modules…).
+val sampleProject = layout.projectDirectory.dir("../tf-test").asFile.absolutePath
+val sampleArgs = listOf(sampleProject, "$sampleProject/plan.json")
 val node = providers.gradleProperty("nodeExecutable").get()
 
 kotlin {
@@ -30,7 +35,10 @@ repositories {
 dependencies {
     intellijPlatform {
         intellijIdeaCommunity(providers.gradleProperty("platformVersion"))
+        testFramework(TestFrameworkType.Platform)
     }
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.opentest4j:opentest4j:1.3.0")
 }
 
 intellijPlatform {
@@ -87,4 +95,59 @@ val webResources by tasks.registering(Sync::class) {
 
 sourceSets.main {
     resources.srcDir(webResources)
+}
+
+// --- Tests and sandbox IDEs -------------------------------------------------------------------
+
+val testWebHost by tasks.registering(Exec::class) {
+    description = "Tests jetbrains-host.js, the page side of the bridge, with the Node.js test runner."
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    dependsOn(buildCoreBundle)
+    commandLine(node, "--test", "src/test/js/jetbrains-host.test.mjs")
+    inputs.file("src/main/resources/preflight-web/jetbrains-host.js")
+    inputs.file("src/test/js/jetbrains-host.test.mjs")
+    inputs.file(core.file("dist/preflight-core.js"))
+    outputs.upToDateWhen { true }
+}
+
+tasks.test {
+    // No embedded browser in tests: the editor shows its fallback, and no cef_server process
+    // outlives the test JVM (the page is tested by testWebHost).
+    systemProperty("ide.browser.jcef.enabled", "false")
+}
+
+tasks.check {
+    dependsOn(testWebHost)
+}
+
+tasks.runIde {
+    args(sampleArgs)
+    systemProperty("idea.trust.all.projects", "true")
+    systemProperty("ide.show.tips.on.startup.default.value", "false")
+}
+
+intellijPlatformTesting {
+    runIde {
+        // Same, in PyCharm.
+        register("runPyCharm") {
+            type = IntelliJPlatformType.PyCharmCommunity
+            version = providers.gradleProperty("pycharmVersion")
+            task {
+                args(sampleArgs)
+                systemProperty("idea.trust.all.projects", "true")
+                systemProperty("ide.show.tips.on.startup.default.value", "false")
+            }
+        }
+        // Same, in an IDE installed on this machine (-PlocalIde=/Applications/IntelliJ IDEA.app).
+        providers.gradleProperty("localIde").orNull?.let { path ->
+            register("runLocalIde") {
+                localPath = file(path)
+                task {
+                    args(sampleArgs)
+                    systemProperty("idea.trust.all.projects", "true")
+                    systemProperty("ide.show.tips.on.startup.default.value", "false")
+                }
+            }
+        }
+    }
 }
