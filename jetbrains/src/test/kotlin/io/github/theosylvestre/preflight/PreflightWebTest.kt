@@ -11,7 +11,7 @@ import org.junit.Test
 class PreflightWebTest {
     @Test
     fun `shared page, scripts and icons are packaged`() {
-        for (path in listOf("media/viewer.html", "media/viewer.js", "media/graph.js", "media/viewer.css", "media/logo-dark.svg", "preflight-core.js", "jetbrains-host.js")) {
+        for (path in listOf("media/viewer.html", "media/viewer.js", "media/graphLayout.js", "media/graph.js", "media/viewer.css", "media/logo-dark.svg", "preflight-core.js", "jetbrains-host.js")) {
             assertNotNull("$path missing", PreflightWeb.resource(path))
         }
         val core = PreflightWeb.resource("preflight-core.js")!!.toString(Charsets.UTF_8)
@@ -33,9 +33,9 @@ class PreflightWebTest {
         assertFalse("unfilled placeholder", page.contains("{{"))
         assertTrue(page.contains("script-src 'nonce-N0nce'"))
         assertTrue(page.contains("connect-src ${PreflightWeb.ORIGIN}"))
-        val order = listOf("preflight-core.js", "jetbrains-host.js", "media/graph.js", "media/viewer.js").map { page.indexOf("${PreflightWeb.ORIGIN}/$it") }
+        val order = listOf("preflight-core.js", "jetbrains-host.js", "media/graphLayout.js", "media/graph.js", "media/viewer.js").map { page.indexOf("${PreflightWeb.ORIGIN}/$it") }
         assertTrue("scripts out of order: $order", order.all { it >= 0 } && order == order.sorted())
-        assertEquals(4, Regex("""<script nonce="N0nce" src=""").findAll(page).count())
+        assertEquals(5, Regex("""<script nonce="N0nce" src=""").findAll(page).count())
     }
 
     @Test

@@ -9,5 +9,5 @@
 !media/icon.png
 !media/logo-*.svg
 !media/viewer.*
-!media/graph.js
+!media/graph*.js
 !media/aws-icons/**
