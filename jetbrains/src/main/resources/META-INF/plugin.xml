@@ -1,6 +1,6 @@
 <idea-plugin>
     <id>io.github.theosylvestre.preflight</id>
-    <name>Preflight — Terraform Plan Viewer for AWS</name>
+    <name>Preflight - Terraform Plan Viewer for AWS</name>
     <vendor url="https://github.com/theosylvestre/preflight">Théo Sylvestre</vendor>
 
     <description><![CDATA[
