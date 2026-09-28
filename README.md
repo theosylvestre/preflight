@@ -81,6 +81,7 @@ make jb-test          # unit, platform (headless IDE) and bridge tests
 make jb-run           # sandbox IntelliJ IDEA 2025.1 with the plugin, on tf-test/plan.json
 make jb-run-pycharm   # same in PyCharm
 make jb-build         # build/preflight-jetbrains-<version>.zip
+make install-jetbrains # same, then installs it in the latest IntelliJ IDEA / PyCharm (restart them)
 ```
 
 Or open `jetbrains/` in IntelliJ IDEA: run configurations are provided in `jetbrains/.run/`. Details in

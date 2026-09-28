@@ -2,7 +2,7 @@ ICONS_DIR := core/media/aws-icons
 VSC := $(CURDIR)/vsc
 
 .PHONY: dist clean clean-icons build run debug icon package install test \
-	jb-build jb-test jb-run jb-run-pycharm jb-verify
+	jb-build jb-test jb-run jb-run-pycharm jb-verify install-jetbrains
 
 # Packages of both IDEs land in build/.
 OUT := build
@@ -67,6 +67,13 @@ jb-build:
 	$(GRADLE) buildPlugin
 	mkdir -p $(OUT)
 	cp jetbrains/build/distributions/$(JB_ZIP) $(OUT)/
+
+# Builds the plugin then installs it in the latest IntelliJ IDEA and PyCharm of this machine
+# (restart them to load it), or in the given IDE configuration folder(s):
+#   make install-jetbrains JB_CONFIG="$$HOME/Library/Application Support/JetBrains/IntelliJIdea2026.2"
+JB_CONFIG ?=
+install-jetbrains: jb-build
+	jetbrains/scripts/install-local.sh $(OUT)/$(JB_ZIP) $(if $(JB_CONFIG),"$(JB_CONFIG)")
 
 # Unit and platform tests (headless IDE), and the page side of the bridge (Node.js).
 jb-test:
