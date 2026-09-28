@@ -1,0 +1,47 @@
+<idea-plugin>
+    <id>io.github.theosylvestre.preflight</id>
+    <name>Preflight — Terraform Plan Viewer for AWS</name>
+    <vendor url="https://github.com/theosylvestre/preflight">Théo Sylvestre</vendor>
+
+    <description><![CDATA[
+    <p>Review Terraform plans and states of AWS infrastructure without scrolling through
+    <code>terraform plan</code> output.</p>
+    <p>Preflight opens the JSON output of <code>terraform show -json</code> (plans or states) and
+    <code>terraform.tfstate</code> files in a <b>Preflight</b> tab next to the text editor:</p>
+    <ul>
+        <li>plan summary with filters by action (create, update, replace, destroy, read, forget, no-op);</li>
+        <li>attribute-by-attribute diff of each resource, unified or split, with <i>known after apply</i>
+            and sensitive values, and IAM policies expanded and diffed key by key;</li>
+        <li>a graph of who can access what through IAM: execution roles, trust policies, attached, inline and
+            resource policies, permissions boundaries, with the allowed actions and conditions;</li>
+        <li>AWS service icon next to each resource.</li>
+    </ul>
+    <p>Open a plan with <b>View as Terraform Plan</b> (project view, editor tab or Tools menu), a state with
+    <b>View as Terraform State</b>, which can also read the current state of a Terraform folder with
+    <code>terraform show -json</code> (remote backends included).</p>
+    <p>Preflight is an independent project, not affiliated with or endorsed by Amazon Web Services or HashiCorp.</p>
+    ]]></description>
+
+    <!-- Every IDE of the IntelliJ Platform: IntelliJ IDEA, PyCharm, WebStorm, GoLand… -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <fileEditorProvider implementation="io.github.theosylvestre.preflight.PreflightEditorProvider"/>
+        <notificationGroup id="Preflight" displayType="BALLOON"/>
+    </extensions>
+
+    <actions>
+        <group id="Preflight.Actions">
+            <action id="Preflight.OpenPlan" class="io.github.theosylvestre.preflight.actions.OpenPlanAction"
+                    text="View as Terraform Plan" description="Open a terraform show -json plan in Preflight"
+                    icon="AllIcons.Actions.Preview"/>
+            <action id="Preflight.OpenState" class="io.github.theosylvestre.preflight.actions.OpenStateAction"
+                    text="View as Terraform State" description="Open a Terraform state in Preflight"
+                    icon="AllIcons.Nodes.DataTables"/>
+            <separator/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+            <add-to-group group-id="EditorTabPopupMenu" anchor="last"/>
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </group>
+    </actions>
+</idea-plugin>

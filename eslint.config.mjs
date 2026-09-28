@@ -25,7 +25,7 @@ export default [{
         "valid-typeof": "warn",
     },
 }, {
-    files: ["core/media/**/*.js"],
+    files: ["core/media/**/*.js", "jetbrains/src/main/resources/**/*.js"],
     languageOptions: {
         sourceType: "script",
         globals: {
