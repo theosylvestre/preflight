@@ -1,0 +1,13 @@
+{
+  "name": "@preflight/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Terraform plan / state parsing, IAM graph and viewer page shared by the Preflight extensions.",
+  "license": "MIT",
+  "scripts": {
+    "test": "mocha --ui tdd \"test/**/*.test.js\""
+  },
+  "devDependencies": {
+    "mocha": "^11.8.0"
+  }
+}

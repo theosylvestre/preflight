@@ -1,7 +1,7 @@
 import globals from "globals";
 
 export default [{
-    ignores: [".vscode-test/**"],
+    ignores: ["**/.vscode-test/**", "**/dist/**", "vsc/media/**", "jetbrains/build/**", "jetbrains/.intellijPlatform/**"],
 }, {
     files: ["**/*.js"],
     languageOptions: {
@@ -25,7 +25,7 @@ export default [{
         "valid-typeof": "warn",
     },
 }, {
-    files: ["media/**/*.js"],
+    files: ["core/media/**/*.js"],
     languageOptions: {
         sourceType: "script",
         globals: {

@@ -3,7 +3,7 @@ const path = require('path');
 const vscode = require('vscode');
 
 suite('Extension', () => {
-	const plan = vscode.Uri.file(path.join(__dirname, 'fixtures', 'mixed-plan.json'));
+	const plan = vscode.Uri.file(path.join(__dirname, '..', '..', 'core', 'test', 'fixtures', 'mixed-plan.json'));
 
 	test('command and editor are registered', async () => {
 		const ext = vscode.extensions.getExtension('theosylvestre.preflight-tf-aws');
@@ -24,7 +24,7 @@ suite('Extension', () => {
 	});
 
 	test('opens a state file in the Preflight viewer', async () => {
-		const state = vscode.Uri.file(path.join(__dirname, 'fixtures', 'sample.tfstate'));
+		const state = vscode.Uri.file(path.join(__dirname, '..', '..', 'core', 'test', 'fixtures', 'sample.tfstate'));
 		await vscode.commands.executeCommand('workbench.action.closeAllEditors');
 		await vscode.commands.executeCommand('preflight.openState', state);
 		const tab = vscode.window.tabGroups.activeTabGroup.activeTab;

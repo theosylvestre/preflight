@@ -11,7 +11,11 @@
             "mocha",
         ],
     },
-    "exclude": [
-        "node_modules"
+    "include": [
+        "core/src",
+        "core/test",
+        "vsc/*.js",
+        "vsc/src",
+        "vsc/test"
     ]
 }

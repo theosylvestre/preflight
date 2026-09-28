@@ -3,8 +3,8 @@ const crypto = require('crypto');
 const path = require('path');
 const { execFile } = require('child_process');
 const fs = require('fs');
-const { indexIcons, indexCategoryIcons } = require('./awsIcons');
-const { buildViewModel } = require('./viewModel');
+const { indexIcons, indexCategoryIcons } = require('../../core/src/awsIcons');
+const { buildViewModel } = require('../../core/src/viewModel');
 
 const VIEW_TYPE = 'preflight.planViewer';
 const SETTINGS_KEY = 'preflight.settings';

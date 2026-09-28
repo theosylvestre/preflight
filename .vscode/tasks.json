@@ -2,6 +2,13 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"label": "preflight: build",
+			"type": "shell",
+			"command": "make build",
+			"presentation": { "reveal": "silent" },
+			"problemMatcher": []
+		},
+		{
 			"label": "preflight: dev window (inspector 9229)",
 			"type": "shell",
 			"command": "make debug",

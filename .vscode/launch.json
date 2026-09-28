@@ -23,12 +23,12 @@
 			"request": "launch",
 			"args": [
 				"--disable-extensions",
-				"--extensionDevelopmentPath=${workspaceFolder}",
+				"--extensionDevelopmentPath=${workspaceFolder}/vsc",
 				"${workspaceFolder}/tf-test"
 			],
+			"preLaunchTask": "preflight: build",
 			"outFiles": [
-				"${workspaceFolder}/extension.js",
-				"${workspaceFolder}/src/**/*.js"
+				"${workspaceFolder}/vsc/dist/**/*.js"
 			]
 		}
 	]

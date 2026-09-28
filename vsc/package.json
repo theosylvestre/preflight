@@ -1,0 +1,124 @@
+{
+  "name": "preflight-tf-aws",
+  "displayName": "Preflight — Terraform Plan Viewer for AWS",
+  "description": "Visualizes Terraform plans and states of AWS infrastructure (`terraform show -json`, `terraform.tfstate`): summary, filters, per-resource diff and a relationship / permission graph.",
+  "version": "0.1.0",
+  "publisher": "theosylvestre",
+  "author": {
+    "name": "Théo Sylvestre"
+  },
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/theosylvestre/preflight.git"
+  },
+  "homepage": "https://github.com/theosylvestre/preflight#readme",
+  "bugs": {
+    "url": "https://github.com/theosylvestre/preflight/issues"
+  },
+  "keywords": [
+    "terraform",
+    "aws",
+    "iam",
+    "plan",
+    "tfstate",
+    "diff",
+    "infrastructure as code"
+  ],
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
+  "engines": {
+    "vscode": "^1.138.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "customEditors": [
+      {
+        "viewType": "preflight.planViewer",
+        "displayName": "Preflight — Terraform Plan & State Viewer (AWS)",
+        "selector": [
+          {
+            "filenamePattern": "*.json"
+          },
+          {
+            "filenamePattern": "*.tfstate"
+          },
+          {
+            "filenamePattern": "*.tfstate.backup"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
+    "commands": [
+      {
+        "command": "preflight.openPlan",
+        "title": "View as Terraform Plan",
+        "category": "Preflight",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "preflight.openState",
+        "title": "View as Terraform State",
+        "category": "Preflight",
+        "icon": "$(database)"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "preflight.openPlan",
+          "when": "resourceExtname == .json",
+          "group": "navigation@90"
+        },
+        {
+          "command": "preflight.openState",
+          "when": "(resourceExtname == .tfstate || resourceFilename =~ /\\.tfstate\\.backup$/)",
+          "group": "navigation@91"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "preflight.openPlan",
+          "when": "resourceExtname == .json && activeCustomEditorId != preflight.planViewer",
+          "group": "navigation"
+        },
+        {
+          "command": "preflight.openState",
+          "when": "(resourceExtname == .tfstate || resourceFilename =~ /\\.tfstate\\.backup$/) && activeCustomEditorId != preflight.planViewer",
+          "group": "navigation"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "preflight.openPlan",
+          "when": "resourceExtname == .json"
+        },
+        {
+          "command": "preflight.openState",
+          "when": "(resourceExtname == .tfstate || resourceFilename =~ /\\.tfstate\\.backup$/)"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "vscode:prepublish": "node scripts/build.mjs --production",
+    "pretest": "pnpm run build",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.138.0",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.0.0",
+    "@vscode/vsce": "^4.0.0"
+  }
+}
