@@ -5,8 +5,9 @@ const { PlanEditorProvider, VIEW_TYPE, pickAndOpen, pickAndOpenState } = require
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
+	const provider = new PlanEditorProvider(context);
 	context.subscriptions.push(
-		vscode.window.registerCustomEditorProvider(VIEW_TYPE, new PlanEditorProvider(context), {
+		vscode.window.registerCustomEditorProvider(VIEW_TYPE, provider, {
 			webviewOptions: { retainContextWhenHidden: true },
 			supportsMultipleEditorsPerDocument: true
 		}),
@@ -35,6 +36,8 @@ function activate(context) {
 			await vscode.commands.executeCommand('vscode.openWith', target, VIEW_TYPE);
 		})
 	);
+	// For the integration tests.
+	return { layoutCacheDir: provider.layouts.dir };
 }
 
 function deactivate() {}
