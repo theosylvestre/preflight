@@ -854,7 +854,56 @@ function preflightLayoutModule(scope) {
 	}
 
 
+	// --- Transfer / storage form ------------------------------------------------------
+	// A layout and its routes as plain data (frames list their node ids), to cross the worker
+	// boundary and be stored by the host; `unpack` gives the frames their nodes and labels back
+	// from the graph, as `layout` builds them.
+	function pack(lay, routes) {
+		return {
+			width: lay.width,
+			height: lay.height,
+			xy: [...lay.xy],
+			clusters: lay.clusters.map((c) => ({ key: c.key, x: c.x, y: c.y, w: c.w, h: c.h, head: c.head, cols: c.cols, rows: c.rows, nodes: c.nodes.map((n) => n.id) })),
+			routes: [...routes]
+		};
+	}
+	function unpack(data, g) {
+		const byId = new Map(g.nodes.map((n) => [n.id, n]));
+		const first = new Map();
+		for (const n of g.nodes) { const k = n.category || 'Other'; if (!first.has(k)) first.set(k, n); }
+		const clusters = data.clusters.map((c) => {
+			const n = first.get(c.key) || {};
+			return Object.assign({}, c, {
+				label: n.categoryLabel || c.key, icon: n.categoryIcon || null, sub: n.categorySub || null, url: n.categoryUrl || null,
+				nodes: c.nodes.map((id) => byId.get(id)).filter(Boolean)
+			});
+		});
+		return { layout: { xy: new Map(data.xy), clusters, width: data.width, height: data.height }, routes: new Map(data.routes) };
+	}
+	// Layout and routes of one variant: frames (`horizontal` or not) or force.
+	function compute(g, variant) {
+		if (variant.force) {
+			const lay = forceLayout(g);
+			return pack(lay, straightRoutes(g, lay));
+		}
+		const lay = layout(g, variant.horizontal);
+		return pack(lay, routeAll(g, lay));
+	}
+
+	// In a Web Worker: one message per layout to compute, answered with its packed form.
+	if (typeof WorkerGlobalScope !== 'undefined' && scope instanceof WorkerGlobalScope) {
+		scope.onmessage = (ev) => {
+			const { id, graph, variant } = ev.data;
+			try {
+				scope.postMessage({ id, data: compute(graph, variant) });
+			} catch (e) {
+				scope.postMessage({ id, error: e && e.message ? e.message : String(e) });
+			}
+		};
+	}
+
 	scope.PreflightLayout = {
+		pack, unpack, compute,
 		W, H, MARGIN, PAD, HEAD, NODE_GAP, CLUSTER_GAP, GRID,
 		layered, layout, forceLayout, straightRoutes, focusLayout, routeAll, chipText, chipWidth, edgeKey, trunc, summarize
 	};

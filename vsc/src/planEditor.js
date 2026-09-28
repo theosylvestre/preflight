@@ -92,7 +92,9 @@ class PlanEditorProvider {
 			`style-src ${webview.cspSource} 'unsafe-inline' https://fonts.googleapis.com`,
 			`font-src ${webview.cspSource} https://fonts.gstatic.com`,
 			`img-src ${webview.cspSource}`,
-			`script-src 'nonce-${nonce}'`
+			`script-src 'nonce-${nonce}'`,
+			// Graph layouts are computed in a Web Worker created from a blob (see graph.js).
+			'worker-src blob:'
 		].join('; ');
 		const vars = { csp, nonce, media: webview.asWebviewUri(media).toString(), scripts: '' };
 		const template = fs.readFileSync(path.join(media.fsPath, 'viewer.html'), 'utf8');

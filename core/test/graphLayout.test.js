@@ -6,6 +6,8 @@ const path = require('path');
 const vm = require('vm');
 const { buildViewModel } = require('../src/viewModel');
 
+// Values built in another realm (the vm context) compared as plain data.
+const plain = (v) => JSON.parse(JSON.stringify(v));
 const fixture = (name) => fs.readFileSync(path.join(__dirname, 'fixtures', name), 'utf8');
 const source = fs.readFileSync(path.join(__dirname, '..', 'media', 'graphLayout.js'), 'utf8');
 
@@ -43,5 +45,33 @@ suite('graphLayout', () => {
 		for (let i = 0; i < pos.length; i++) for (let j = i + 1; j < pos.length; j++) assert.ok(!overlap(pos[i], pos[j]), 'nodes overlap');
 		const routes = L.straightRoutes(graph, a);
 		for (const r of routes.values()) assert.strictEqual(r.length, 2);
+	});
+
+	test('packed layouts survive JSON and unpack to the direct layout', () => {
+		for (const variant of [{ horizontal: false }, { horizontal: true }, { force: true }]) {
+			const data = JSON.parse(JSON.stringify(L.compute(graph, variant)));
+			const { layout: lay, routes } = L.unpack(data, graph);
+			const direct = variant.force ? L.forceLayout(graph) : L.layout(graph, variant.horizontal);
+			assert.deepStrictEqual(plain([...lay.xy]), plain([...direct.xy]));
+			assert.deepStrictEqual(plain([lay.width, lay.height]), plain([direct.width, direct.height]));
+			assert.deepStrictEqual(plain(lay.clusters.map((c) => [c.key, c.label, c.icon, c.sub, c.url, c.x, c.y, c.w, c.h, c.nodes.map((n) => n.id)])),
+				plain(direct.clusters.map((c) => [c.key, c.label, c.icon, c.sub, c.url, c.x, c.y, c.w, c.h, c.nodes.map((n) => n.id)])));
+			for (const c of lay.clusters) for (const n of c.nodes) assert.ok(graph.nodes.includes(n), 'frames hold the graph nodes');
+			const directRoutes = variant.force ? L.straightRoutes(graph, direct) : L.routeAll(graph, direct);
+			assert.deepStrictEqual(plain([...routes]), plain([...directRoutes]));
+		}
+	});
+
+	test('in a worker scope, answers each message with the packed layout', () => {
+		class WorkerGlobalScope {}
+		const scope = new WorkerGlobalScope();
+		const posted = [];
+		scope.postMessage = (m) => posted.push(m);
+		vm.runInContext(source, vm.createContext({ self: scope, WorkerGlobalScope }));
+		scope.onmessage({ data: { id: '1#type:vertical', graph, variant: { horizontal: false } } });
+		scope.onmessage({ data: { id: '1#bad', graph: null, variant: {} } });
+		assert.strictEqual(posted[0].id, '1#type:vertical');
+		assert.deepStrictEqual(plain(posted[0].data), plain(L.compute(graph, { horizontal: false })));
+		assert.ok(posted[1].error, 'errors are reported, not thrown');
 	});
 });

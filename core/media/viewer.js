@@ -331,16 +331,27 @@
 		renderPlan();
 	}
 
+	// The graph grouped by type, and by module (resources of a module take their module's
+	// group instead of their type's), built once per plan.
+	function graphsOf(m) {
+		if (!m._graphs) {
+			m._graphs = {
+				type: m.graph,
+				module: Object.assign({}, m.graph, { nodes: m.graph.nodes.map((n) => n.moduleGroup ? Object.assign({}, n, n.moduleGroup) : n) })
+			};
+		}
+		return m._graphs;
+	}
+
 	function renderGraph() {
 		if (!window.PreflightGraph) return;
 		if (model.graph.error) {
 			$('graph').innerHTML = '<div class="state"><h2>Unable to build the graph</h2><p>' + esc(model.graph.error) + '</p></div>';
 			return;
 		}
-		// Group by module: resources of a module take their module's group instead of their type's.
-		const graph = cfg.modules ? Object.assign({}, model.graph, { nodes: model.graph.nodes.map((n) => n.moduleGroup ? Object.assign({}, n, n.moduleGroup) : n) }) : model.graph;
+		const graphs = graphsOf(model);
 		window.PreflightGraph.render($('graph'), {
-			graph, act: ACT, esc, st, setState, docName: isState() ? 'state' : 'plan',
+			graph: cfg.modules ? graphs.module : graphs.type, graphs, act: ACT, esc, st, setState, docName: isState() ? 'state' : 'plan',
 			label: cfg.label, direction: cfg.direction, modules: cfg.modules, tubes: cfg.tubes, chips: cfg.chips, setCfg, zoom: ZOOM[cfg.size] || 1,
 			inPlan: (id) => model.resources.some((r) => r.addr === id),
 			openInPlan: (id) => setState({ tab: 'plan', sel: id, filter: 'all', q: '' }),
@@ -582,6 +593,8 @@
 			ACT = model.kind === 'state' ? STATE_ACT : PLAN_ACT;
 			meta = { path: msg.path || [], error: null };
 			render();
+			// Graph layouts are computed in the background from now on, the Graph tab open or not.
+			if (window.PreflightGraph && !model.graph.error) window.PreflightGraph.prepare(graphsOf(model), cfg);
 		} else if (msg.type === 'error') {
 			model = null;
 			meta = { path: msg.path || [], error: msg.message };

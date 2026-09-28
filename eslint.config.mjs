@@ -31,6 +31,7 @@ export default [{
         globals: {
             ...globals.browser,
             acquireVsCodeApi: "readonly",
+            WorkerGlobalScope: "readonly",
         },
     },
 }];

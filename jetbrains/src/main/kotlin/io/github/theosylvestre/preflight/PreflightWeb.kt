@@ -50,6 +50,8 @@ object PreflightWeb {
             "img-src $ORIGIN",
             "connect-src $ORIGIN",
             "script-src 'nonce-$nonce'",
+            // Graph layouts are computed in a Web Worker created from a blob (see graph.js).
+            "worker-src blob:",
         ).joinToString("; ")
         val scripts = listOf("preflight-core.js", "jetbrains-host.js")
             .joinToString("\n") { """<script nonce="$nonce" src="$ORIGIN/$it"></script>""" }

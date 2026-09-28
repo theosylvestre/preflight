@@ -3,7 +3,7 @@
 // permissions, rendered as SVG with pan / zoom and a details panel.
 (function () {
 	const {
-		W, H, PAD, trunc, layout, forceLayout, straightRoutes, focusLayout, routeAll, chipText, chipWidth, edgeKey
+		W, H, PAD, trunc, focusLayout, routeAll, chipText, chipWidth, edgeKey, compute, unpack
 	} = window.PreflightLayout;
 
 
@@ -460,6 +460,123 @@
 		'</div>';
 	}
 
+	// --- Layouts of every variant ---------------------------------------------------
+	// A layout (frames by type / by module, vertical / horizontal, or force) takes from a few
+	// hundred milliseconds to seconds on large graphs. Layouts are computed in a Web Worker
+	// running graphLayout.js, from the moment a plan is loaded: first the variant shown, then
+	// the others in the background, and kept, so that switching variants is instant. Without
+	// workers (blocked by the runtime), the variant shown is computed on the page when needed.
+
+	const VARIANTS = {
+		'type:vertical': { modules: false, horizontal: false },
+		'type:horizontal': { modules: false, horizontal: true },
+		'module:vertical': { modules: true, horizontal: false },
+		'module:horizontal': { modules: true, horizontal: true },
+		// The force layout has no frames: the same for both groupings.
+		force: { modules: false, force: true }
+	};
+	const variantOf = (c) => (c.direction === 'force' ? 'force' : (c.modules ? 'module:' : 'type:') + c.direction);
+
+	const store = {
+		graphs: null, // { type, module }: the graph grouped each way, for the plan loaded
+		gen: 0, // plan generation: results for an older plan are dropped
+		data: new Map(), // variant → packed layout
+		ready: new Map(), // variant → { layout, routes } (unpacked for rendering)
+		queue: [], // variants still to compute, next first
+		busy: null, // variant being computed by the worker
+		worker: undefined, // Worker, null when unavailable
+		onReady: null // called with the variant when one gets ready
+	};
+
+	function graphOf(variant) {
+		return VARIANTS[variant].modules ? store.graphs.module : store.graphs.type;
+	}
+
+	function createWorker() {
+		try {
+			// The worker runs graphLayout.js itself, from the source of its module function.
+			const src = '(' + window.preflightLayoutModule.toString() + ')(self);';
+			const url = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
+			const w = new Worker(url);
+			URL.revokeObjectURL(url);
+			w.onmessage = (ev) => done(ev.data);
+			w.onerror = (ev) => {
+				ev.preventDefault();
+				// Blocked or crashed: back to computing on the page.
+				store.worker = null;
+				const v = store.busy;
+				store.busy = null;
+				if (v && store.onReady) store.onReady(v);
+			};
+			return w;
+		} catch {
+			return null;
+		}
+	}
+
+	/** New plan: forget the layouts of the previous one and start computing the new ones. */
+	function prepare(graphs, cfg) {
+		if (store.graphs && store.graphs.type === graphs.type) return;
+		store.graphs = graphs;
+		store.gen++;
+		store.data.clear();
+		store.ready.clear();
+		store.busy = null;
+		if (store.worker === undefined) store.worker = createWorker();
+		// The variant the settings show first, then the same grouping, then the rest.
+		const first = variantOf(cfg);
+		store.queue = Object.keys(VARIANTS).sort((a, b) => rankOf(a, first) - rankOf(b, first));
+		next();
+	}
+	function rankOf(v, first) {
+		if (v === first) return 0;
+		return v.split(':')[0] === first.split(':')[0] ? 1 : 2;
+	}
+
+	/** Moves `variant` to the front of the queue (it is the one on screen). */
+	function want(variant) {
+		if (store.data.has(variant) || store.busy === variant) return;
+		store.queue = [variant].concat(store.queue.filter((v) => v !== variant));
+		next();
+	}
+
+	function next() {
+		if (!store.worker || store.busy || !store.queue.length) return;
+		const variant = store.queue.shift();
+		store.busy = variant;
+		store.worker.postMessage({ id: store.gen + '#' + variant, graph: graphOf(variant), variant: VARIANTS[variant] });
+	}
+
+	function done(msg) {
+		const [gen, variant] = msg.id.split('#');
+		if (Number(gen) !== store.gen) return next();
+		store.busy = null;
+		if (msg.data) store.data.set(variant, msg.data);
+		else store.queue.push(variant);
+		next();
+		if (msg.data && store.onReady) store.onReady(variant);
+	}
+
+	/** Layout of `variant` if computed (computed now when there is no worker), else null. */
+	function layoutOf(variant) {
+		if (store.ready.has(variant)) return store.ready.get(variant);
+		if (!store.data.has(variant)) {
+			if (store.worker) return want(variant), null;
+			store.data.set(variant, compute(graphOf(variant), VARIANTS[variant]));
+			store.queue = store.queue.filter((v) => v !== variant);
+		}
+		const entry = unpack(store.data.get(variant), graphOf(variant));
+		store.ready.set(variant, entry);
+		return entry;
+	}
+
+	// Placeholder while the layout shown is being computed; the options stay usable.
+	function pendingHtml() {
+		return '<div class="g-bar"><span class="t">AWS IAM</span>' +
+			'<span class="info">' + ctx.graph.nodes.length + ' nodes · ' + ctx.graph.edges.length + ' links</span></div>' +
+			'<div class="g-body"><div class="g-canvas g-pending"><div class="state"><p>Laying out the graph…</p></div>' + dockHtml() + '</div></div>';
+	}
+
 	// --- Public API ------------------------------------------------------------------
 
 	const ICON = {
@@ -467,18 +584,27 @@
 		close: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>'
 	};
 
+	let shown = null; // { root, ctx } of the last render, to redraw when its layout gets ready
+	store.onReady = (variant) => {
+		if (shown && variantOf(shown.ctx) === variant && shown.root.offsetParent) render(shown.root, shown.ctx);
+	};
+
 	function render(root, c) {
 		ctx = c;
-		const key = c.graph.nodes.map((n) => n.id + '@' + n.category).join('|') + '#' + c.graph.edges.length + '#' + c.direction;
+		shown = { root, ctx: c };
+		prepare(c.graphs, c);
+		const variant = variantOf(c);
+		const entry = layoutOf(variant);
+		if (!entry) {
+			root.innerHTML = pendingHtml();
+			bind(root);
+			return;
+		}
+		const key = store.gen + '#' + variant;
 		if (view.key !== key) {
 			view.key = key;
-			if (c.direction === 'force') {
-				view.layout = forceLayout(c.graph);
-				view.routes = straightRoutes(c.graph, view.layout);
-			} else {
-				view.layout = layout(c.graph, c.direction === 'horizontal');
-				view.routes = routeAll(c.graph, view.layout);
-			}
+			view.layout = entry.layout;
+			view.routes = entry.routes;
 			view.fit = true;
 		}
 		// Muted resources stay in place, dimmed, with their links hidden.
@@ -741,5 +867,5 @@
 		});
 	}
 
-	window.PreflightGraph = { render, fit: () => { view.fit = true; fit(view); } };
+	window.PreflightGraph = { render, prepare, fit: () => { view.fit = true; fit(view); } };
 })();
