@@ -46,6 +46,11 @@ host layer differs — the VS Code webview API on one side, JCEF and a small bri
 Requirements: Node.js 22+ and pnpm (the version is pinned in `package.json`); for the JetBrains plugin,
 a JDK 17+ to run Gradle (on macOS, the one bundled with IntelliJ IDEA is used when `JAVA_HOME` is not set).
 
+```sh
+pnpm install
+make dist      # (or just `make`) builds both: the .vsix at the root and the JetBrains plugin .zip
+```
+
 ### VS Code extension
 
 ```sh

@@ -1,10 +1,14 @@
 ICONS_DIR := core/media/aws-icons
 VSC := $(CURDIR)/vsc
 
-.PHONY: clean-icons build run debug icon package install test \
+.PHONY: dist clean-icons build run debug icon package install test \
 	jb-build jb-test jb-run jb-run-pycharm jb-verify
 
 VSIX := $(shell node -p "p=require('./vsc/package.json');p.name+'-'+p.version").vsix
+
+# Builds both packages: the .vsix at the root (VS Code) and
+# jetbrains/build/distributions/preflight-jetbrains-<version>.zip (JetBrains IDEs).
+dist: package jb-build
 
 # Keeps only the 64 px SVG icons of the AWS pack (removes PNG, .DS_Store, other sizes…)
 # then the empty folders.
