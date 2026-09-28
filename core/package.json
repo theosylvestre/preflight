@@ -1,6 +1,6 @@
 {
   "name": "@preflight/core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Terraform plan / state parsing, IAM graph and viewer page shared by the Preflight extensions.",
   "license": "MIT",
